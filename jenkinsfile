@@ -13,6 +13,7 @@ git 'https://github.com/RaksAniruddha/apachewebsite.git'
 }
 stage('run ansibleplaybook'){
 steps{
+ansiblePlaybook credentialsId: 'ansible-ssh', installation: 'ansible', inventory: 'inventory.ini', playbook: 'installapache.yml', vaultTmpPath: ''
 
 }
 }
