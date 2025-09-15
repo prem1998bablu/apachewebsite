@@ -1,0 +1,53 @@
+pipeline {
+agent any
+environment {
+DOCKER_IMAGE = &#39;anirudev/apachewebsite:latest&#39;
+KUBECONFIG = credentials(&#39;kubeconfig&#39;)
+}
+
+stages {
+stage(&#39;Clone Git repository&#39;) {
+steps {
+git &#39;https://github.com/RaksAniruddha/apachewebsite.git&#39;
+}
+}
+stage(&#39;run ansibleplaybook&#39;){
+steps{
+ansiblePlaybook credentialsId: &#39;ansible-ssh&#39;, installation: &#39;ansible2&#39;, inventory: &#39;inventory.ini&#39;,
+playbook: &#39;installapche.yml&#39;, vaultTmpPath: &#39;&#39;
+}
+}
+stage(&#39;Docker Build &amp; Push&#39;) {
+steps {
+script {
+withDockerRegistry([credentialsId: &#39;docker&#39;, url: &#39;https://index.docker.io/v1/&#39;]) {
+sh &#39;&#39;&#39;
+echo &quot;Building Docker image...&quot;
+docker build --no-cache -t $DOCKER_IMAGE -f Dockerfile .
+
+echo &quot;Pushing Docker image to Docker Hub...&quot;
+docker push $DOCKER_IMAGE
+&#39;&#39;&#39;
+}
+}
+}
+}
+stage(&#39;Deploy to Kubernetes&#39;) {
+steps {
+script {
+withCredentials([file(credentialsId: &#39;kubeconfig&#39;, variable: &#39;KUBECONFIG_FILE&#39;)]) {
+sh &#39;&#39;&#39;
+echo &quot;Deploying to Kubernetes...&quot;
+export KUBECONFIG=$KUBECONFIG_FILE
+
+kubectl apply -f deployment.yml
+kubectl apply -f service.yml
+
+echo &quot;Deployment and Service applied successfully!&quot;
+&#39;&#39;&#39;
+}
+}
+}
+}
+}
+}
