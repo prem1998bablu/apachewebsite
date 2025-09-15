@@ -1,50 +1,49 @@
 pipeline {
 agent any
 environment {
-DOCKER_IMAGE = &#39;anirudev/apachewebsite:latest&#39;
-KUBECONFIG = credentials(&#39;kubeconfig&#39;)
+DOCKER_IMAGE ='anirudev/apachewebsite:latest'
+KUBECONFIG = credentials('kubeconfig')
 }
 
 stages {
-stage(&#39;Clone Git repository&#39;) {
+stage('Clone Git repository') {
 steps {
-git &#39;https://github.com/RaksAniruddha/apachewebsite.git&#39;
+git 'https://github.com/RaksAniruddha/apachewebsite.git'
 }
 }
-stage(&#39;run ansibleplaybook&#39;){
+stage('run ansibleplaybook'){
 steps{
-ansiblePlaybook credentialsId: &#39;ansible-ssh&#39;, installation: &#39;ansible2&#39;, inventory: &#39;inventory.ini&#39;,
-playbook: &#39;installapche.yml&#39;, vaultTmpPath: &#39;&#39;
+
 }
 }
-stage(&#39;Docker Build &amp; Push&#39;) {
+stage('Docker Build &amp; Push') {
 steps {
 script {
-withDockerRegistry([credentialsId: &#39;docker&#39;, url: &#39;https://index.docker.io/v1/&#39;]) {
-sh &#39;&#39;&#39;
-echo &quot;Building Docker image...&quot;
+withDockerRegistry([credentialsId: 'docker', url: 'https://index.docker.io/v1/']) {
+sh ''';
+echo "Building Docker image..."
 docker build --no-cache -t $DOCKER_IMAGE -f Dockerfile .
 
-echo &quot;Pushing Docker image to Docker Hub...&quot;
+echo "Pushing Docker image to Docker Hub..."
 docker push $DOCKER_IMAGE
-&#39;&#39;&#39;
+'''
 }
 }
 }
 }
-stage(&#39;Deploy to Kubernetes&#39;) {
+stage('Deploy to Kubernetes') {
 steps {
 script {
-withCredentials([file(credentialsId: &#39;kubeconfig&#39;, variable: &#39;KUBECONFIG_FILE&#39;)]) {
-sh &#39;&#39;&#39;
-echo &quot;Deploying to Kubernetes...&quot;
+withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+sh '''
+echo "Deploying to Kubernetes..."
 export KUBECONFIG=$KUBECONFIG_FILE
 
 kubectl apply -f deployment.yml
 kubectl apply -f service.yml
 
-echo &quot;Deployment and Service applied successfully!&quot;
-&#39;&#39;&#39;
+echo "Deployment and Service applied successfully!"
+'''
 }
 }
 }
